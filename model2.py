@@ -4,25 +4,31 @@ Created on Tue Dec  8 13:41:00 2015
 
 @author: jpoles1
 """
-from igraph import *
+import igraph as ig
+import numpy as np
 class World:
     def __init__(self, initPopulation):
         self.popsize = initPopulation;
         self.population = []
         for indv in range(initPopulation):
-            self.population.append(Person());
-        self.worldgraph = Graph.Watts_Strogatz(1, initPopulation, 5, 0.25);
+            self.population.append(Person(self));
+        self.worldgraph = ig.Graph.Watts_Strogatz(1, initPopulation, 5, 0.25);
         self.worldgraph.vs["classes"] = self.population
+    def death(self, person):
+        self.popsize-=1;
+        self.population.remove(person);
+        self.worldgraph.delete_vertices(worldgraph.vs.select(classes_eq=person))
 class Town:
     pass
 class Person:
     idct = 1;
-    def __init__(self):
+    def __init__(self, world):
         #When infected, first check if disease is already in diseases, if not, check resistances
         self.diseases = [] #each entry is a disease ID
         self.id = Person.idct;
         Person.idct+=1;
         self.resistances = [] #each entry like {id: 1, resist: .05}
+        self.world = world;
     def infect(self, disease):
         self.diseases.append(disease)
     def recover(self, disease, resist):
@@ -48,11 +54,8 @@ class Person:
     def interact(self, otherActor):
         print(Person.checkDisease(self, otherActor))
         print(Person.checkDisease(otherActor, self))
-    def die(self, world):
-        world.popsize-=1;
-        world.population.remove(self)
-class Family:
-    pass
+    def die(self):
+        self.world.population.remove(self)
 class Disease:
     idct = 1;
     diseaseList = []
@@ -66,6 +69,8 @@ def testPeople():
     cold = Disease();
     ali.infect(cold)
     jordan.interact(ali)
-earth = World(100)
-print("Average Vertex Degree: %f" % (mean(earth.worldgraph.degree())))
-plot(earth.worldgraph, vertex_size=5, inline=1)
+def main():
+    earth = World(100)
+    print("Average Vertex Degree: %f" % (np.mean(earth.worldgraph.degree())))
+    ig.plot(earth.worldgraph, vertex_size=10, inline=1)
+main()
