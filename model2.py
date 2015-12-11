@@ -4,20 +4,32 @@ Created on Tue Dec  8 13:41:00 2015
 
 @author: jpoles1
 """
-import igraph as ig
+import networkx as nx
+import matplotlib.pyplot as plt
 import numpy as np
+
 class World:
     def __init__(self, initPopulation):
         self.popsize = initPopulation;
         self.population = []
+        self.diseaseList = {};
         for indv in range(initPopulation):
             self.population.append(Person(self));
-        self.worldgraph = ig.Graph.Watts_Strogatz(1, initPopulation, 5, 0.25);
-        self.worldgraph.vs["classes"] = self.population
+        self.worldgraph = nx.watts_strogatz_graph(initPopulation, 4,  .3);
+        mappin = {num: per for (num, per) in enumerate(self.population)}
+        nx.relabel_nodes(self.worldgraph, mappin)
+        nx.set_node_attributes(self.worldgraph, 'fillcolor', "green")
     def death(self, person):
         self.popsize-=1;
         self.population.remove(person);
-        self.worldgraph.delete_vertices(worldgraph.vs.select(classes_eq=person))
+        self.worldgraph.remove_node(person);
+    def addDisease(self, disease):
+    def addPerson(self, person):
+        self.population.append(person)
+        self.popsize+=1;
+        self.worldgraph
+    def changeNodeColor(self, person, color):
+        self.worldgraph.node[person]["fillcolor"] = color;
 class Town:
     pass
 class Person:
@@ -59,18 +71,29 @@ class Person:
 class Disease:
     idct = 1;
     diseaseList = []
-    def __init__(self):
+    def __init__(self, world, virulence):
         self.id = Disease.idct;
+        self.virulence = virulence;
+        self.infected = 0;
+        self.dead = 0;
+        self.world = world;
         Disease.idct+=1;
         Disease.diseaseList.append(self);
+    def mutateVirulence(self):
+        virulenceJitter = .05;
+        self.virulence = self.virulence + random.uniform(-virulenceJitter, virulenceJitter)
 def testPeople():
     ali = Person()
     jordan = Person();
-    cold = Disease();
+    cold = Disease(.8);
     ali.infect(cold)
     jordan.interact(ali)
+def tick(world):
+    for edge in world.
 def main():
     earth = World(100)
-    print("Average Vertex Degree: %f" % (np.mean(earth.worldgraph.degree())))
-    ig.plot(earth.worldgraph, vertex_size=10, inline=1)
+    nx.draw_spring(earth.worldgraph)
+    for i in range(runTime):
+        tick(earth)
+runtime = 100;
 main()
