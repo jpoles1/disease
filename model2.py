@@ -8,32 +8,21 @@ import networkx as nx
 from networkx.readwrite import json_graph
 import matplotlib.pyplot as plt
 import numpy as np
-import SocketServer
-import json
 
 themeColors = {"alive": "green", "infected": "orange", "dead": "red", "recovered": "blue"}
-class Server(SocketServer.ThreadingTCPServer):
-    allow_reuse_address = True
-class Handler(SocketServer.StreamRequestHandler):
-    def __init__(self, world):
-        self.worldgraph = world.worldgraph;
-    def handle(self):
-        self.request.sendall(json.dumps(json_graph.node_link_data(self.worldgraph)))  # your JSON
 class World:
-    def __init__(self, initPopulation, serverPort):
+    def __init__(self, initPopulation):
         self.popsize = initPopulation;
         self.population = []
         self.diseaseList = {};
         self.age = 0;
-        self.serverPort = serverPort
         for indv in range(initPopulation):
             self.population.append(Person(self));
         self.worldgraph = nx.watts_strogatz_graph(initPopulation, 4,  .3);
         mappin = {num: per for (num, per) in enumerate(self.population)}
-        nx.relabel_nodes(self.worldgraph, mappin)
+        nx.relabel_nodes(self.worldgraph, mappin, copy=False)
+        self.nodeLayout = nx.spring_layout(self.worldgraph)
         nx.set_node_attributes(self.worldgraph, 'color', "green")
-        server = Server(('127.0.0.1', self.serverPort), Handler(self))
-        server.serve_forever()
     def death(self, person):
         self.popsize-=1;
         self.population.remove(person);
@@ -44,16 +33,18 @@ class World:
         self.population.append(person)
         self.popsize+=1;
         self.worldgraph
-    def changeNodeColor(self, person, color):
-        self.worldgraph.node[person]["fillcolor"] = color;
     def draw(self):
-        return 0;        
-        self.nodeLayout = nx.spring_layout(self.worldgraph)
-        x.draw(self.worldgraph, layout=self.nodeLayout)
+        nodeColors = [x.color for x in nx.nodes_iter(self.worldgraph)]
+        nx.draw(self.worldgraph, layout=self.nodeLayout, node_color=nodeColors)
+        plt.savefig("graphseries/graph"+str(self.age)+".png")
+        plt.close()
     def tick(self):
         self.age+=1;
-        self.draw();
+        if(self.age%4 == 0):
+            self.draw();
         interactions = random.sample(self.worldgraph.edges(), self.popsize/4)
+        for edge in interactions:
+            edge[0].interact(edge[1])
 class Town:
     pass
 class Person:
@@ -79,7 +70,7 @@ class Person:
     def checkDisease(a, b):
         newInfections = []
         for disease in a.diseases:
-            if not any(dis for disease in b.diseases if dis['id'] == disease.id):
+            if not any(dis for dis in b.diseases if dis.id == disease.id):
                 try:
                     resistance = next(res for res in b.resistances if res['id'] == disease.id)
                     test = random.uniform(0, 1)
@@ -91,8 +82,8 @@ class Person:
                     newInfections.append(disease.id)
         return newInfections
     def interact(self, otherActor):
-        print(Person.checkDisease(self, otherActor))
-        print(Person.checkDisease(otherActor, self))
+        print("Infections from A to B:", Person.checkDisease(self, otherActor))
+        print("Infections from B to A:", Person.checkDisease(otherActor, self))
     def die(self):
         self.world.population.remove(self)
 class Disease:
@@ -116,8 +107,11 @@ def testPeople():
     ali.infect(cold)
     jordan.interact(ali)
 def main():
-    earth = World(100, 9090)
+    earth = World(100)
     runTime = 100;
+    earth.tick()
+    cold = Disease(earth, .8);
+    earth.population[0].infect(cold)
     for i in range(runTime):
         earth.tick()
 main()
