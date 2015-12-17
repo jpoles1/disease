@@ -1,38 +1,35 @@
-import random
+#Loading Libs
+import matplotlib.pyplot as plt
+%matplotlib inline  
 import pandas as pd
-class host:
-    def __init__(self, populationSize):
-        self.S = populationSize
-        self.diseases = [];
-        self.age = 0;
-        self.history = pd.DataFrame()
-        self.history["S"] = self.S
-        self.step(5)
-    def infect(self, name, disease, initInfected):
-        self.diseases.append({"name": name, "pos": len(self.diseases)+1, "disease": disease, "I": initInfected})
-        self.S-=initInfected
-        self.step()
-    def step(self, dt=1):
-        for i in range(dt):
-            self.history.loc[len(self.history)+1] = 0
-            self.history.loc[len(self.history), "S"] = self.S
-            if len(self.diseases) > 0:
-                random.shuffle(self.diseases)
-                s = self.S
-                for dis in self.diseases:
-                    self.S = s - dis["disease"].beta*s*dis["I"]+dis["disease"].gamma*dis["I"]
-                    dis["I"] = dis["disease"].beta*dis["I"]*s - dis["disease"].gamma*dis["I"]
-            self.age+=1;
-            print "Step number %i, Age is %i" % (i, self.age)
-class disease:
-    def __init__(self, B, G):
-        self.beta = B
-        self.gamma = G
-initialPop = 1e6
-humans = host(initialPop)
-killer = disease(.05, .01)
-babby = disease(.05, .01)
-humans.infect(1, killer, 15)
-humans.infect(2, babby, 150)
-humans.step(10)
-humans.history
+from math import floor
+from ggplot import *
+import seaborn as sns
+#Initializing Vars
+S = 1000
+I = 15
+R = 0
+D = 0
+steps = 50
+#Disease Parameters
+beta = .0005
+gamma = .05
+delta = .02
+history = pd.DataFrame({"S": S, "I": I, "R": R, "D": D}, index=[0])
+#Run sim loop
+history["step"] = history.index
+plotData = pd.melt(history, id_vars=["step"])
+ggplot(plotData, aes(x="step", y="value", color="variable"))+geom_line()
+for step in range(1, steps):
+    newInf = floor(min(max(beta*I*S, 0), S))
+    newRec = floor(min(max(gamma*I, 0), I))
+    newDead = floor(min(max(delta*I, 0), I-newRec))
+    S = S - newInf
+    I = I + newInf - newRec - newDead
+    R = R + newRec
+    D = D + newDead
+    history = history.append(pd.DataFrame({"S": S, "I": I, "R": R, "D": D}, index=[step]))
+history["step"] = history.index
+plotData = pd.melt(history, id_vars=["step"], value_vars=["S","I","R","D"])
+sns.
+ggplot(plotData, aes(x="step", y="value", color="variable"))+geom_line()+xlab("Time Step")+ylab("# Hosts")
