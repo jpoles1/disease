@@ -28,7 +28,8 @@ require(ggplot2)
 plotdat = melt(history, id.vars = c("time"))
 ggplot(data=plotdat)+
   aes(x=time, y=value, color=variable)+
-  geom_line()+
+  geom_line(size=2)+
+  theme_set(theme_gray(base_size = 24))+
   xlab("Time Step")+ylab("# Indv.")+
   ggtitle(paste("SIRD Dynamics\nβ=",beta,"; γ=",gamma,"; μ=",mu,"\n", sep=""))+
   scale_color_manual(name="Disease State", 
