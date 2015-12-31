@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import os
+from ggplot import *
 
 themeColors = {"alive": "blue", "infected": "orange", "dead": "red", "recovered": "green"}
 class World:
@@ -48,6 +49,7 @@ class World:
     def tick(self):
         self.age+=1;
         if(self.age%4 == 0):
+            print("Drawing network; Age is "+str(self.age))
             self.draw();
         interactions = random.sample(self.worldgraph.edges(), self.popsize/6)
         for edge in interactions:
@@ -60,9 +62,10 @@ class World:
         for i in range(nsteps):
             self.tick();
     def summary(self):
-        for disease in diseaseList
-        history = {str(disease.id)+".I" : disease.historyI for disease in self.diseaseList}
-        return pd.DataFrame(history);
+        histories = {}
+        for disease in self.diseaseList:
+            histories[disease.name] = disease.summary();
+        return histories;
 class Infection:
     def __init__(self, host, disease, timeToDeath, recoveryRate):
         self.host = host;
@@ -78,7 +81,7 @@ class Infection:
         elif self.recovered!=1:
             test = random.uniform(0, 1)
             if(test>self.recoveryRate):
-                self.host.recover(self.disease, .9)
+                self.host.recover(self, .9)
                 self.recovered = 1;
 class Person:
     idct = 1;
@@ -98,15 +101,15 @@ class Person:
         disease.infected+=1;
         disease.susceptible-=1;
         self.color = themeColors["infected"]
-    def recover(self, disease, resist):
+    def recover(self, infection, resist):
         try:
-            self.diseases.remove(disease)
+            self.diseases.remove(infection)
         except:
-            print("Disease not on list. Is this vaccination?");
-        disease.infected-=1;
-        disease.recovered-=1;
+            print("Infection not on list. Is this vaccination?");
+        infection.disease.infected-=1;
+        infection.disease.recovered+=1;
         self.color = themeColors["recovered"]
-        self.resistances.append({"id": disease.id, "resist": resist})
+        self.resistances.append({"id": infection.disease.id, "resist": resist})
     def checkDisease(a, b):
         newInfections = []
         for disease in a.diseases:
@@ -117,8 +120,8 @@ class Person:
                     if(test>resistance["resist"]):
                         b.infect(disease.disease);
                         newInfections.append(disease.id)
-                    else:
-                        print("individual resisted infection!")
+                    #else:
+                        #print("individual resisted infection!")
                 except:
                     b.infect(disease.disease);
                     newInfections.append(disease.id)
@@ -143,7 +146,8 @@ class Person:
                 infection.tick()
 class Disease:
     idct = 1;
-    def __init__(self, world, virulence, pathogenicity):
+    def __init__(self, name, world, virulence, pathogenicity):
+        self.name = name;
         self.id = Disease.idct;
         self.virulence = virulence; #Determines how likely the pathogen is to spread from one host to the next
         self.pathogenicity = pathogenicity; #Determines how much disease the pathogen creates in the host (aka number of days w/o recovery until death)
@@ -168,27 +172,25 @@ class Disease:
         self.historyR[age] = self.recovered;
         self.historyD[age] = self.dead;
     def summary(self):
-        historyFrame = pd.DataFrame({"S": self.historyS, "I": self.historyI, "R": self.historyR, "D": self.historyD});
-        pd.melt
-        return 
-def testPeople():
-    ali = Person()
-    jordan = Person();
-    cold = Disease(.8);
-    ali.infect(cold)
-    jordan.interact(ali)
+        historyFrame = pd.DataFrame({"1-S": self.historyS, "2-I": self.historyI, "3-R": self.historyR, "4-D": self.historyD});
+        historyFrame["time"] = historyFrame.index
+        return historyFrame;
 def main():
     os.system("rm graphseries/*.png")
-    earth = World(100)
+    earth = World(1000)
     earth.tick()
-    cold = Disease(earth, .6, 1);
+    cold = Disease("Common Cold", earth, .7, 1);
     earth.population[0].infect(cold)
-    earth.population[50].recover(cold, .95)
-    earth.runSim(100)
+    earth.runSim(150)
     print("Converting to GIF")
     os.system("convert -delay 50 -loop 0 graphseries/*.png graphseries/network.gif")
     print("Conversion complete")
     os.system('xdg-open graphseries/network.gif')
-    return(earth.summary())
-history = main()
-plt.plot(history)
+    return(earth)
+earth = main()
+history = earth.summary() 
+for name, x in history.iteritems():
+    y = pd.melt(x, id_vars="time")
+    z = ggplot(y, aes(x="time", y="value", color="variable"))+geom_line()+xlab("Time Step")+ylab("# Hiosts")+ylim(0, earth.popsize)+ggtitle("SIRD Dynamics - Agent Based Model\n"+name)
+    ggsave(z, "graphs/"+name+".png")    
+    print z
