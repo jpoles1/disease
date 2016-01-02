@@ -6,6 +6,7 @@ Created on Tue Dec  8 13:41:00 2015
 """
 import networkx as nx
 import random
+from math import sqrt
 from forceatlas import forceatlas2_layout
 from networkx.readwrite import json_graph
 import matplotlib.pyplot as plt
@@ -27,8 +28,8 @@ class World:
         self.worldgraph = nx.watts_strogatz_graph(initPopulation, 4,  .3);
         mappin = {num: per for (num, per) in enumerate(self.population)}
         nx.relabel_nodes(self.worldgraph, mappin, copy=False)
-        #self.nodeLayout = nx.spring_layout(self.worldgraph, k=.01)
-        self.nodeLayout = forceatlas2_layout(self.worldgraph, iterations=100, linlog=1)
+        #self.nodeLayout = nx.spring_layout(self.worldgraph, scale=200, k=1/(50*sqrt(self.popsize)))
+        self.nodeLayout = forceatlas2_layout(self.worldgraph, iterations=10, scale=400)
         nx.set_node_attributes(self.worldgraph, 'color', themeColors["alive"])
     def draw(self):
         if(drawgif):
@@ -179,10 +180,10 @@ def main():
     os.system("rm graphseries/*.png")
     earth = World(1000)
     earth.tick()
-    cold = Disease("Common Cold", earth, .95, 1);
-    earth.population[0].infect(cold, 0)
-    earth.population[1].infect(cold, 0)
-    earth.runSim(150)
+    flu = Disease("1918 Flu", earth, .95, 1);
+    earth.population[0].infect(flu, 0)
+    earth.population[1].infect(flu, 0)
+    earth.runSim(120)
     if(drawgif):
         print("Converting to GIF")
         os.system("convert -delay 50 -loop 0 graphseries/*.png graphseries/network.gif")
@@ -193,6 +194,6 @@ earth = main()
 history = earth.summary() 
 for name, x in history.iteritems():
     y = pd.melt(x, id_vars="time")
-    z = ggplot(y, aes(x="time", y="value", color="variable"))+geom_line()+xlab("Time Step")+ylab("# Hiosts")+ylim(0, earth.popsize)+ggtitle("SIRD Dynamics - Agent Based Model\n"+name)
-    ggsave(z, "graphs/"+name+".png")    
+    z = ggplot(y, aes(x="time", y="value", color="variable"))+geom_line()+xlab("Time Step")+ylab("# Hosts")+ylim(0, earth.popsize)+ggtitle("SIRD Dynamics - Agent Based Model\n"+name)
+    ggsave(z, "graphs/"+name+".png")
     print z

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 ## Now the layout function
 def forceatlas2_layout(G, iterations=10, linlog=False, pos=None, nohubs=False,
-                       kr=0.001, k=None, dim=2):
+                       kr=0.001, k=None, dim=2, scale=1):
     """
     Options values are
 
@@ -22,6 +22,7 @@ def forceatlas2_layout(G, iterations=10, linlog=False, pos=None, nohubs=False,
                      If false, start with FR
     avoidoverlap     Whether to avoid overlap of points
     degreebased      Degree based repulsion
+    scale            Scaling
     """
     # We add attributes to store the current and previous convergence speed
     for n in G:
@@ -77,7 +78,7 @@ def forceatlas2_layout(G, iterations=10, linlog=False, pos=None, nohubs=False,
         # cool temperature
         t -= dt
         # Return the layout
-    return dict(zip(G, pos))
+    return dict(zip(G, pos*scale))
 
 
 if __name__ == "__main__":
